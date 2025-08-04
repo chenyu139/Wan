@@ -106,10 +106,12 @@ class WanVideoModel:
                 torch_dtype=self.dtype
             )
             
-            # Enable CPU offload if using CUDA
-            if torch.cuda.is_available():
-                self.pipe.enable_model_cpu_offload(device=self.device)
-                self.logger.info(f"Enabled model CPU offload on device: {self.device}")
+            # Enable sequential CPU offload for memory efficiency while keeping inference on GPU
+            if torch.cuda.is_available() and self.device != "cpu":
+                self.pipe.enable_sequential_cpu_offload()
+                self.logger.info(f"Enabled sequential CPU offload for GPU inference on device: {self.device}")
+            else:
+                self.logger.info("Using CPU for inference")
             
             # Initialize image processor
             self.image_processor = ImageProcessor()
