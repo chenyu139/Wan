@@ -7,7 +7,7 @@ from PIL import Image
 import cv2
 import numpy as np
 
-from diffusers import WanImageToVideoPipeline, AutoencoderKLWan
+from diffusers import WanImageToVideoPipeline, WanPipeline, AutoencoderKLWan
 from diffusers.utils import export_to_video
 
 from ..core.config import get_settings
@@ -92,7 +92,8 @@ class WanVideoModel:
     def __init__(self):
         self.settings = get_settings()
         self.logger = logger
-        self.pipe: Optional[WanImageToVideoPipeline] = None
+        self.pipe: Optional[WanImageToVideoPipeline] = None  # Image-to-video pipeline
+        self.t2v_pipe: Optional[WanPipeline] = None  # Text-to-video pipeline
         self.image_processor: Optional[ImageProcessor] = None
         self.device = self.settings.device if torch.cuda.is_available() else "cpu"
         
@@ -121,9 +122,17 @@ class WanVideoModel:
                 torch_dtype=torch.float32
             )
             
-            # Load pipeline
-            self.logger.info("Loading pipeline...")
+            # Load image-to-video pipeline
+            self.logger.info("Loading image-to-video pipeline...")
             self.pipe = WanImageToVideoPipeline.from_pretrained(
+                str(model_path),
+                vae=vae,
+                torch_dtype=self.dtype
+            )
+            
+            # Load text-to-video pipeline
+            self.logger.info("Loading text-to-video pipeline...")
+            self.t2v_pipe = WanPipeline.from_pretrained(
                 str(model_path),
                 vae=vae,
                 torch_dtype=self.dtype
@@ -132,6 +141,7 @@ class WanVideoModel:
             # Enable CPU offload if using CUDA
             if torch.cuda.is_available():
                 self.pipe.enable_model_cpu_offload(device=self.device)
+                self.t2v_pipe.enable_model_cpu_offload(device=self.device)
                 self.logger.info(f"Enabled model CPU offload on device: {self.device}")
             
             # Initialize image processor
@@ -145,7 +155,7 @@ class WanVideoModel:
     
     def is_loaded(self) -> bool:
         """Check if model is loaded."""
-        return self.pipe is not None and self.image_processor is not None
+        return self.pipe is not None and self.t2v_pipe is not None and self.image_processor is not None
     
     async def generate_video(
         self,
@@ -193,6 +203,46 @@ class WanVideoModel:
             
         except Exception as e:
             self.logger.error(f"Error generating video: {e}")
+            raise e
+    
+    async def generate_video_from_text(
+        self,
+        prompt: str,
+        negative_prompt: str = "",
+        num_frames: int = 121,
+        num_inference_steps: int = 50,
+        guidance_scale: float = 5.0,
+        height: int = 720,
+        width: int = 1280
+    ) -> np.ndarray:
+        """Generate video from text prompt only."""
+        if not self.is_loaded():
+            raise RuntimeError("Model not loaded")
+        
+        try:
+            # Ensure dimensions are divisible by 32
+            height = (height // 32) * 32
+            width = (width // 32) * 32
+            
+            self.logger.info("Starting text-to-video generation...")
+            self.logger.info(f"Parameters: frames={num_frames}, steps={num_inference_steps}, guidance={guidance_scale}")
+            self.logger.info(f"Resolution: {width}x{height}")
+            
+            output = self.t2v_pipe(
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                height=height,
+                width=width,
+                num_frames=num_frames,
+                guidance_scale=guidance_scale,
+                num_inference_steps=num_inference_steps,
+            ).frames[0]
+            
+            self.logger.info("Text-to-video generation completed successfully!")
+            return output
+            
+        except Exception as e:
+            self.logger.error(f"Error generating video from text: {e}")
             raise e
     
     def export_video(self, frames: np.ndarray, output_path: str, fps: int = 24):

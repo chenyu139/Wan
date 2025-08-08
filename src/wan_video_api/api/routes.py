@@ -110,6 +110,70 @@ async def generate_video(
         raise HTTPException(status_code=500, detail=f"Error generating video: {str(e)}")
 
 
+@router.post("/generate_video_from_text")
+async def generate_video_from_text(
+    prompt: str = Form(..., description="Text prompt for video generation"),
+    negative_prompt: Optional[str] = Form(
+        default="色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走",
+        description="Negative prompt"
+    ),
+    num_frames: Optional[int] = Form(default=None, description="Number of frames to generate"),
+    num_inference_steps: Optional[int] = Form(default=None, description="Number of inference steps"),
+    guidance_scale: Optional[float] = Form(default=None, description="Guidance scale"),
+    height: Optional[int] = Form(default=720, description="Video height"),
+    width: Optional[int] = Form(default=1280, description="Video width"),
+    model: WanVideoModel = Depends(get_model),
+    settings = Depends(get_settings)
+):
+    """Generate video from text prompt only."""
+    
+    if not model.is_loaded():
+        raise HTTPException(status_code=503, detail="Model not loaded")
+    
+    # Use default values if not provided
+    num_frames = num_frames or settings.default_num_frames
+    num_inference_steps = num_inference_steps or settings.default_num_inference_steps
+    guidance_scale = guidance_scale or settings.default_guidance_scale
+    
+    try:
+        # Generate video from text only
+        logger.info("Starting text-to-video generation...")
+        output_frames = await model.generate_video_from_text(
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            num_frames=num_frames,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            height=height,
+            width=width
+        )
+        
+        # Create output file
+        output_filename = f"generated_video_text_{uuid.uuid4().hex}.mp4"
+        
+        # Use configured output directory
+        output_dir = Path(settings.output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / output_filename
+        
+        # Export video
+        model.export_video(output_frames, str(output_path), fps=24)
+        
+        logger.info(f"Video generated successfully: {output_path}")
+        
+        # Return the video file
+        return FileResponse(
+            path=str(output_path),
+            media_type="video/mp4",
+            filename=output_filename,
+            headers={"Content-Disposition": f"attachment; filename={output_filename}"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generating video from text: {e}")
+        raise HTTPException(status_code=500, detail=f"Error generating video from text: {str(e)}")
+
+
 @router.get("/model/info")
 async def model_info(model: WanVideoModel = Depends(get_model)):
     """Get model information."""
