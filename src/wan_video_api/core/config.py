@@ -33,17 +33,16 @@ class Settings(BaseSettings):
     
     # File Upload
     max_file_size: int = Field(default=50_000_000, description="Maximum file size in bytes")
-    allowed_extensions: List[str] = Field(
-        default=["jpg", "jpeg", "png", "webp", "bmp"],
-        description="Allowed file extensions"
+    allowed_extensions: str = Field(
+        default="jpg,jpeg,png,webp,bmp",
+        description="Allowed file extensions (comma-separated)"
     )
     
-    @field_validator('allowed_extensions', mode='before')
-    @classmethod
-    def parse_allowed_extensions(cls, v):
-        if isinstance(v, str):
-            return [ext.strip() for ext in v.split(',')]
-        return v
+    def get_allowed_extensions_list(self) -> List[str]:
+        """Get allowed extensions as a list."""
+        if isinstance(self.allowed_extensions, str):
+            return [ext.strip() for ext in self.allowed_extensions.split(',') if ext.strip()]
+        return self.allowed_extensions
     
     # Logging
     log_level: str = Field(default="INFO", description="Logging level")

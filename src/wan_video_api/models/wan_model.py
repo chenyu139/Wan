@@ -21,7 +21,7 @@ class ImageProcessor:
         self.logger = logger
     
     def __call__(self, image, max_area: int = 901120, output: str = "processed_image"):
-        """Process image with resizing and cropping."""
+        """Process image with resizing and cropping for Wan2.2 model."""
         if isinstance(image, str):
             # If image is a URL or path, load it
             if image.startswith(('http://', 'https://')):
@@ -40,25 +40,48 @@ class ImageProcessor:
         original_width, original_height = image.size
         original_area = original_width * original_height
         
-        # Calculate new dimensions if area exceeds max_area
+        # Wan2.2 model works best with 720P resolution (1280x720) or similar aspect ratios
+        # The model uses compression ratio of 4×32×32, so dimensions should be divisible by 32
+        target_width = 1280
+        target_height = 720
+        
+        # Calculate new dimensions while maintaining aspect ratio
         if original_area > max_area:
+            # Scale down if image is too large
             scale_factor = (max_area / original_area) ** 0.5
             new_width = int(original_width * scale_factor)
             new_height = int(original_height * scale_factor)
-            
-            # Ensure dimensions are divisible by 8 (common requirement for video models)
-            new_width = (new_width // 8) * 8
-            new_height = (new_height // 8) * 8
-            
-            image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
-            self.logger.info(f"Resized image from {original_width}x{original_height} to {new_width}x{new_height}")
         else:
-            # Still ensure dimensions are divisible by 8
-            new_width = (original_width // 8) * 8
-            new_height = (original_height // 8) * 8
-            if new_width != original_width or new_height != original_height:
-                image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
-                self.logger.info(f"Adjusted image dimensions to {new_width}x{new_height} (divisible by 8)")
+            new_width = original_width
+            new_height = original_height
+        
+        # Adjust to maintain 16:9 aspect ratio (720P standard) if possible
+        aspect_ratio = new_width / new_height
+        target_aspect_ratio = 16 / 9
+        
+        if abs(aspect_ratio - target_aspect_ratio) > 0.1:
+            # Adjust dimensions to be closer to 16:9 aspect ratio
+            if aspect_ratio > target_aspect_ratio:
+                # Image is too wide, adjust height
+                new_height = int(new_width / target_aspect_ratio)
+            else:
+                # Image is too tall, adjust width
+                new_width = int(new_height * target_aspect_ratio)
+        
+        # Ensure dimensions are divisible by 32 (required for Wan2.2 model)
+        new_width = (new_width // 32) * 32
+        new_height = (new_height // 32) * 32
+        
+        # Ensure minimum dimensions
+        if new_width < 320:
+            new_width = 320
+        if new_height < 320:
+            new_height = 320
+        
+        # Resize image
+        if new_width != original_width or new_height != original_height:
+            image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            self.logger.info(f"Resized image from {original_width}x{original_height} to {new_width}x{new_height} (divisible by 32)")
         
         return image
 

@@ -21,8 +21,9 @@ def validate_image_file(file: UploadFile, settings: Settings) -> None:
     # Check file extension
     if file.filename:
         file_ext = Path(file.filename).suffix.lower().lstrip('.')
-        if file_ext not in settings.allowed_extensions:
-            raise ValueError(f"File extension '{file_ext}' not allowed. Allowed extensions: {settings.allowed_extensions}")
+        allowed_exts = settings.get_allowed_extensions_list()
+        if file_ext not in allowed_exts:
+            raise ValueError(f"File extension '{file_ext}' not allowed. Allowed extensions: {allowed_exts}")
     
     logger.info(f"File validation passed for: {file.filename}")
 
