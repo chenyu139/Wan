@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Wan Video API venv环境设置脚本
+# GCZM TI to Video API venv环境设置脚本
 
 set -e
 
-echo "=== Wan Video API venv环境设置 ==="
+echo "=== GCZM TI to Video API venv环境设置 ==="
 echo
 
 # 检查python是否安装

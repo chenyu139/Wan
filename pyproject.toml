@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "wan-video-api"
+name = "gczm-ti-to-video"
 version = "1.0.0"
-description = "Wan Image to Video Generation API"
+description = "GCZM Text/Image to Video Generation API"
 authors = [{name = "Developer", email = "developer@example.com"}]
 readme = "README.md"
 requires-python = ">=3.10"

@@ -8,8 +8,10 @@ from typing import Optional
 
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException, Depends
 from fastapi.responses import FileResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from PIL import Image
 import io
+from typing import Optional
 
 from ..core.config import get_settings
 from ..core.logging import app_logger as logger
@@ -18,19 +20,64 @@ from ..utils.file_utils import validate_image_file, cleanup_file
 
 
 router = APIRouter()
+security = HTTPBearer()
+
+
+async def verify_api_token(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> str:
+    """验证API token"""
+    settings = get_settings()
+    
+    # 如果不需要认证，直接返回默认用户
+    if not settings.require_auth:
+        return "anonymous"
+    
+    # 需要认证但没有提供token
+    if not credentials:
+        raise HTTPException(
+            status_code=401,
+            detail="Missing authorization token",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    
+    # 验证token
+    if not settings.api_token:
+        raise HTTPException(
+            status_code=500,
+            detail="API token not configured on server"
+        )
+    
+    if credentials.credentials != settings.api_token:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid authorization token",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    
+    return "authenticated_user"
 
 
 @router.get("/health")
-async def health_check():
+async def health_check(user: str = Depends(verify_api_token)):
     """Health check endpoint."""
     model = get_model()
     settings = get_settings()
     
     return {
         "status": "healthy",
+        "message": "GCZMTIToVedio API is running",
+        "version": "1.0.0",
+        "user": user,
         "model_loaded": model.is_loaded(),
         "device": model.device,
-        "model_path": settings.model_path
+        "model_path": settings.model_path,
+        "endpoints": {
+            "generate_video": "/api/v1/generate_video",
+            "generate_video_from_text": "/api/v1/generate_video_from_text",
+            "model_info": "/api/v1/model/info",
+            "model_reload": "/api/v1/model/reload",
+            "docs": "/docs",
+            "redoc": "/redoc"
+        }
     }
 
 
@@ -46,6 +93,7 @@ async def generate_video(
     num_inference_steps: Optional[int] = Form(default=None, description="Number of inference steps"),
     guidance_scale: Optional[float] = Form(default=None, description="Guidance scale"),
     max_area: Optional[int] = Form(default=None, description="Maximum area for image processing"),
+    user: str = Depends(verify_api_token),
     model: WanVideoModel = Depends(get_model),
     settings = Depends(get_settings)
 ):
@@ -122,6 +170,7 @@ async def generate_video_from_text(
     guidance_scale: Optional[float] = Form(default=None, description="Guidance scale"),
     height: Optional[int] = Form(default=720, description="Video height"),
     width: Optional[int] = Form(default=1280, description="Video width"),
+    user: str = Depends(verify_api_token),
     model: WanVideoModel = Depends(get_model),
     settings = Depends(get_settings)
 ):
@@ -175,7 +224,7 @@ async def generate_video_from_text(
 
 
 @router.get("/model/info")
-async def model_info(model: WanVideoModel = Depends(get_model)):
+async def model_info(user: str = Depends(verify_api_token), model: WanVideoModel = Depends(get_model)):
     """Get model information."""
     settings = get_settings()
     
@@ -184,6 +233,7 @@ async def model_info(model: WanVideoModel = Depends(get_model)):
         "device": model.device,
         "dtype": str(model.dtype),
         "is_loaded": model.is_loaded(),
+        "user": user,
         "default_settings": {
             "num_frames": settings.default_num_frames,
             "num_inference_steps": settings.default_num_inference_steps,
@@ -194,12 +244,12 @@ async def model_info(model: WanVideoModel = Depends(get_model)):
 
 
 @router.post("/model/reload")
-async def reload_model(model: WanVideoModel = Depends(get_model)):
+async def reload_model(user: str = Depends(verify_api_token), model: WanVideoModel = Depends(get_model)):
     """Reload the model."""
     try:
         logger.info("Reloading model...")
         await model.load_model()
-        return {"status": "success", "message": "Model reloaded successfully"}
+        return {"status": "success", "message": "Model reloaded successfully", "user": user}
     except Exception as e:
         logger.error(f"Error reloading model: {e}")
         raise HTTPException(status_code=500, detail=f"Error reloading model: {str(e)}")

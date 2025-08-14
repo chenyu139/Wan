@@ -178,7 +178,7 @@ curl -X POST "http://localhost:8000/api/v1/generate_video" \
 ```python
 import requests
 
-url = "http://localhost:8000/api/v1/generate_video"
+url = "http://localhost:8002/api/v1/generate_video"
 
 with open("your_image.jpg", "rb") as f:
     files = {"image": f}
@@ -212,7 +212,7 @@ DTYPE=bfloat16
 
 # 服务器配置
 HOST=0.0.0.0
-PORT=8000
+PORT=8002
 WORKERS=1
 
 # 生成默认参数
@@ -273,8 +273,8 @@ pytest tests/
 
 启动服务后，可以访问以下地址查看自动生成的API文档：
 
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
+- **Swagger UI**: `http://localhost:8002/docs`
+- **ReDoc**: `http://localhost:8002/redoc`
 
 ## 故障排除
 
@@ -295,7 +295,7 @@ pytest tests/
    - 重新创建环境：`rm -rf venv && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple/`
 
 4. **端口占用**
-   - 更改端口：`python scripts/start_server.py --port 8001`
+   - 更改端口：`python scripts/start_server.py --port 8003`
    - 或在 `.env` 文件中修改 `PORT` 配置
 
 ## 许可证

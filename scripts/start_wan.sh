@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Wan Video API 一键启动脚本
+# GCZM TI to Video API 一键启动脚本
 # 基于 FLUX.1-Kontext API 启动脚本模板
 
 set -e
@@ -35,7 +35,7 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # 默认配置
 HOST=${HOST:-"0.0.0.0"}
-PORT=${PORT:-8000}
+PORT=${PORT:-8002}
 DEVICE=${DEVICE:-"cuda"}
 VENV_DIR="$PROJECT_ROOT/venv"
 REQUIREMENTS_FILE="$PROJECT_ROOT/requirements.txt"
@@ -75,14 +75,14 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         -h|--help)
-            echo "Wan Video API 启动脚本"
+            echo "GCZM TI to Video API 启动脚本"
             echo "用法: $0 [选项]"
             echo "选项:"
             echo "  --run-only      跳过环境检查和依赖安装，直接启动服务"
             echo "  --no-venv       不使用虚拟环境"
             echo "  --no-install    跳过依赖安装"
             echo "  --host HOST     指定服务器主机地址 (默认: 0.0.0.0)"
-            echo "  --port PORT     指定服务器端口 (默认: 8000)"
+            echo "  --port PORT     指定服务器端口 (默认: 8002)"
             echo "  --device DEVICE 指定设备 (默认: cuda)"
             echo "  -h, --help      显示此帮助信息"
             exit 0
@@ -222,7 +222,7 @@ check_env_config() {
 
 # 启动服务器
 start_server() {
-    log_info "启动 Wan Video API 服务器..."
+    log_info "启动 GCZM TI to Video API 服务器..."
     log_info "配置信息:"
     log_info "  主机: $HOST"
     log_info "  端口: $PORT"
@@ -247,7 +247,7 @@ start_server() {
     fi
     
     # 使用 uvicorn 启动
-    uvicorn wan_video_api.main:app \
+    uvicorn gczm_ti_to_video.main:app \
         --host "$HOST" \
         --port "$PORT" \
         --reload \
@@ -256,7 +256,7 @@ start_server() {
 
 # 主函数
 main() {
-    echo -e "${BLUE}=== Wan Video API 启动脚本 ===${NC}"
+    echo -e "${BLUE}=== GCZM TI to Video API 启动脚本 ===${NC}"
     echo ""
     
     cd "$PROJECT_ROOT"

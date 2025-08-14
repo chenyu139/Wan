@@ -1,4 +1,4 @@
-"""Configuration management for Wan Video API."""
+"""Configuration management for GCZM TI to Video API."""
 
 import os
 from pathlib import Path
@@ -21,9 +21,13 @@ class Settings(BaseSettings):
     
     # Server Configuration
     host: str = Field(default="0.0.0.0", description="Server host")
-    port: int = Field(default=8000, description="Server port")
+    port: int = Field(default=8002, description="Server port")
     workers: int = Field(default=1, description="Number of worker processes")
     reload: bool = Field(default=True, description="Enable auto-reload")
+    
+    # Authentication
+    require_auth: bool = Field(default=False, description="Enable API token authentication")
+    api_token: Optional[str] = Field(default=None, description="API token for authentication")
     
     # Generation Defaults
     default_num_frames: int = Field(default=121, description="Default number of frames")
@@ -46,7 +50,7 @@ class Settings(BaseSettings):
     
     # Logging
     log_level: str = Field(default="INFO", description="Logging level")
-    log_file: Optional[str] = Field(default="logs/wan_video_api.log", description="Log file path")
+    log_file: Optional[str] = Field(default="logs/gczm_ti_to_video.log", description="Log file path")
     
     # Output
     output_dir: str = Field(default="outputs", description="Output directory")

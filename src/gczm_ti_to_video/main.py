@@ -1,4 +1,4 @@
-"""Main FastAPI application for Wan Video API."""
+"""Main FastAPI application for GCZM TI to Video API."""
 
 from contextlib import asynccontextmanager
 
@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown
-    logger.info("Shutting down Wan Video API...")
+    logger.info("Shutting down GCZM TI to Video API...")
 
 
 def create_app() -> FastAPI:
@@ -41,8 +41,8 @@ def create_app() -> FastAPI:
     settings = get_settings()
     
     app = FastAPI(
-        title="Wan Image to Video API",
-        description="Generate videos from images using Wan2.2 model",
+        title="GCZM TI to Video API",
+        description="Generate videos from text or images using advanced AI models",
         version="1.0.0",
         lifespan=lifespan
     )
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     settings = get_settings()
     
     uvicorn.run(
-        "wan_video_api.main:app",
+        "gczm_ti_to_video.main:app",
         host=settings.host,
         port=settings.port,
         reload=settings.reload,
